@@ -31,7 +31,7 @@ h3{font-size:17px;margin:0 0 6px}
 .sub{color:var(--mute);font-size:13.5px;margin:0 0 10px}
 .hint{color:var(--mute);font-size:13px;margin:10px 0 0}
 
-.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--tabh) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(5,1fr);background:var(--bg2);border-top:1px solid var(--line);z-index:1000}
+.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--tabh) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(6,1fr);background:var(--bg2);border-top:1px solid var(--line);z-index:1000}
 .tabs button{border:0;background:none;color:var(--mute);font-size:12.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .tabs button b{font-size:20px;line-height:1}
 .tabs button.on{color:var(--accent)}
@@ -117,3 +117,23 @@ input[type=number],input[type=text],select{height:44px;border-radius:10px;border
 
 @media(max-width:380px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}.big-time{font-size:26px;min-width:80px}}
 @media(min-width:900px){#v-plan.active{flex-direction:row}#map{height:auto;flex:1}.panel{width:420px;flex:none;overflow-y:auto;margin:0}}
+
+/* sky simulation */
+#v-sim{overflow:hidden}
+.sim-stage{position:absolute;inset:0;background:#03050c}
+#simCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+.sim-info{position:absolute;top:8px;left:8px;right:8px;background:#000a;border-radius:12px;padding:6px 12px;font-size:13.5px;line-height:1.45;pointer-events:none}
+.sim-ctrl{position:absolute;left:8px;right:8px;bottom:8px;background:#060b18d9;border:1px solid #ffffff1a;border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px}
+.sim-row{display:flex;align-items:center;gap:6px}
+.sim-row[hidden]{display:none}
+.sim-time{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+.sim-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.sim-chips::-webkit-scrollbar{display:none}
+.sim-chips button{flex:none;min-height:36px;border-radius:18px;border:1px solid var(--line);background:#ffffff0d;padding:0 12px;font-size:14px;color:var(--mute)}
+.sim-chips button.on{background:#ffb84d26;border-color:var(--accent);color:var(--accent)}
+.sim-chips .sep{flex:none;width:1px;background:var(--line);margin:4px 2px}
+label.inline{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:14px}
+label.inline select{width:auto;height:36px}
+.sim-fr{font-size:13px;color:var(--mute);margin-left:auto;text-align:right}
+.ar-ctrl .sim-chips button{background:#ffffff14}
+@media(max-width:380px){.tabs button{font-size:11.5px}}

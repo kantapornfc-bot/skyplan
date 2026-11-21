@@ -154,6 +154,42 @@
   </div>
 </section>
 
+<!-- ============ จำลองฟ้า ============ -->
+<section class="view" id="v-sim">
+  <div class="sim-stage">
+    <canvas id="simCv"></canvas>
+    <div class="sim-info" id="simInfo">กำลังโหลดข้อมูลดาว…</div>
+    <div class="sim-ctrl">
+      <div class="sim-row">
+        <button class="chip" id="simPrev" aria-label="วันก่อนหน้า">‹</button>
+        <button class="chip accent" id="simPlay" aria-label="เล่นเวลา">▶</button>
+        <button class="chip" id="simNext" aria-label="วันถัดไป">›</button>
+        <span class="sim-time" id="simTime">--:--</span>
+        <input type="range" id="simT" min="0" max="1439" step="1" aria-label="เวลา">
+      </div>
+      <div class="sim-chips" id="simChips">
+        <button data-k="lines" class="on">กลุ่มดาว</button>
+        <button data-k="names" class="on">ชื่อดาว</button>
+        <button data-k="ground" class="on">พื้นดิน</button>
+        <button data-k="paths">เส้นทาง</button>
+        <button data-k="frame">กรอบภาพ</button>
+        <span class="sep"></span>
+        <button data-go="core">→ ทางช้างเผือก</button>
+        <button data-go="moon">→ ดวงจันทร์</button>
+        <button data-go="sun">→ ดวงอาทิตย์</button>
+        <button data-go="north">→ ทิศเหนือ</button>
+        <button data-go="south">→ ทิศใต้</button>
+      </div>
+      <div class="sim-row" id="frameRow" hidden>
+        <label class="inline">เลนส์
+          <select id="simLens"><option>8</option><option>12</option><option selected>16</option><option>23</option><option>35</option><option>50</option><option>90</option><option>200</option></select> mm</label>
+        <button class="chip" id="simOrient">แนวนอน</button>
+        <span class="sim-fr" id="simFr"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ AR ============ -->
 <section class="view" id="v-ar">
   <div class="ar-stage" id="arStage">
@@ -161,6 +197,11 @@
     <canvas id="arCv"></canvas>
     <div class="ar-hud" id="arHud">กด “เปิดกล้อง AR” แล้วยกมือถือขึ้นตั้งตรง</div>
     <div class="ar-ctrl">
+      <div class="sim-chips" id="arChips">
+        <button data-a="sky" class="on">ดาวและทางช้างเผือก</button>
+        <button data-a="lines" class="on">กลุ่มดาว</button>
+        <button data-a="paths" class="on">เส้นทางตามเวลา</button>
+      </div>
       <button class="btn accent" id="arStart">เปิดกล้อง AR</button>
       <label class="fov">มุมกล้อง <input type="range" id="arFov" min="35" max="90" value="60"><span id="arFovOut">60°</span></label>
       <label class="fov">ปรับเข็มทิศ <input type="range" id="arCal" min="-30" max="30" value="0"><span id="arCalOut">0°</span></label>
@@ -172,7 +213,8 @@
 <nav class="tabs">
   <button data-v="v-plan" class="on"><b>◎</b>วางแผน</button>
   <button data-v="v-times"><b>◐</b>เวลา</button>
-  <button data-v="v-mw"><b>✦</b>ทางช้างเผือก</button>
+  <button data-v="v-sim"><b>✧</b>จำลองฟ้า</button>
+  <button data-v="v-mw"><b>✦</b>ทางช้าง</button>
   <button data-v="v-calc"><b>÷</b>คำนวณ</button>
   <button data-v="v-ar"><b>⌖</b>AR</button>
 </nav>
@@ -190,6 +232,7 @@
 
 <script src="lib/leaflet.js"></script>
 <script src="lib/suncalc.js"></script>
+<script src="sky.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

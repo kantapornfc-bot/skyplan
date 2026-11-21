@@ -1,5 +1,5 @@
-const V = 'skyplan-v1';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'lib/leaflet.js', 'lib/leaflet.css', 'lib/suncalc.js',
+const V = 'skyplan-v2';
+const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'sky.js', 'data/sky.json', 'data/mw.png', 'manifest.webmanifest', 'lib/leaflet.js', 'lib/leaflet.css', 'lib/suncalc.js',
   'icons/icon-192.png', 'icons/icon-512.png',
   'fonts/sarabun-thai-400-normal.woff2', 'fonts/sarabun-thai-600-normal.woff2', 'fonts/sarabun-thai-700-normal.woff2',
   'fonts/sarabun-latin-400-normal.woff2', 'fonts/sarabun-latin-600-normal.woff2', 'fonts/sarabun-latin-700-normal.woff2'];

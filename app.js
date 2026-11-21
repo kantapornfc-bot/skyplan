@@ -290,7 +290,7 @@ function calc() {
 }
 
 /* ---------- AR ---------- */
-const AR = { on: false, o: null, f: null, u: null, r: null, paths: null, key: '' };
+const AR = { on: false, o: null, f: null, u: null, r: null, paths: null, key: '', show: store.get('arShow', { sky: true, lines: true, paths: true }) };
 function arPaths() {
   const key = `${S.y}-${S.mo}-${S.d},${S.lat.toFixed(3)},${S.lng.toFixed(3)}`; if (AR.key === key) return; AR.key = key;
   const mk = (fn, from, to) => { const a = []; for (let m = from; m <= to; m += 10) { const d = dayAt(0, m), p = fn(d); a.push({ ...p, h: m % 60 === 0 ? d.getHours() : null }); } return a; };
@@ -320,17 +320,22 @@ function arFrame() {
   const fov = v('arFov') * D2R, fp = (W / 2) / Math.tan(fov / 2);
   const proj = (alt, az) => { const t = vec(alt, az), z = dot(t, AR.f); if (z < 0.05) return null; return [W / 2 + dot(t, right) / z * fp, H / 2 - dot(t, up) / z * fp]; };
   const poly = (pts, color, w, dash) => { x.strokeStyle = color; x.lineWidth = w; x.setLineDash(dash || []); x.beginPath(); let on = false; pts.forEach(p => { const q = proj(p.alt, p.az); if (q && Math.abs(q[0]) < W * 3 && Math.abs(q[1]) < H * 3) { on ? x.lineTo(...q) : x.moveTo(...q); on = true; } else on = false; }); x.stroke(); x.setLineDash([]); };
+  const d = curDate();
+  if ((AR.show.sky || AR.show.lines) && Sky.ready) Sky.render(x, { W, H, f: AR.f, r: right, u: up, fp, proj: 'gno' }, { mode: 'ar', date: d, lat: S.lat, lng: S.lng, show: { sky: AR.show.sky, lines: AR.show.lines, names: AR.show.sky }, fast: true });
   // horizon + compass
   const hz = []; for (let z = 0; z <= 360; z += 2) hz.push({ alt: 0, az: z }); poly(hz, '#ffffffaa', 2);
   x.font = '600 14px Sarabun, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'bottom';
   for (let z = 0; z < 360; z += 15) { const q = proj(0, z); if (!q) continue; x.fillStyle = '#fff'; x.fillRect(q[0] - 1, q[1] - (z % 45 ? 6 : 12), 2, z % 45 ? 6 : 12); if (z % 45 === 0) x.fillText(DIRS[z / 22.5] + ' ' + z + '°', q[0], q[1] - 14); }
   arPaths();
   const P = AR.paths, labels = (pts, color) => { x.fillStyle = color; x.font = '600 13px Sarabun, sans-serif'; pts.forEach(p => { if (p.h == null || p.alt < -2) return; const q = proj(p.alt, p.az); if (q) { x.beginPath(); x.arc(q[0], q[1], 3.5, 0, 7); x.fill(); x.fillText(String(p.h).padStart(2, '0') + ':00', q[0], q[1] - 6); } }); };
-  poly(P.sun.filter(p => p.alt > -8), '#ffd23f', 3); labels(P.sun, '#ffd23f');
-  poly(P.moon.filter(p => p.alt > -8), '#bfe0ff', 2.5, [8, 6]); labels(P.moon, '#bfe0ff');
-  poly(P.core.filter(p => p.alt > -8), '#c38bff', 3); labels(P.core, '#c38bff');
-  const d = curDate(), dotAt = (p, color, rad, txt) => { const q = proj(p.alt, p.az); if (!q) return; x.fillStyle = color; x.beginPath(); x.arc(q[0], q[1], rad, 0, 7); x.fill(); x.fillStyle = '#fff'; x.fillText(txt, q[0], q[1] - rad - 4); };
-  dotAt(sunPos(d), '#ffd23f', 14, 'ดวงอาทิตย์ ' + fmt(d)); dotAt(moonPos(d), '#bfe0ff', 11, 'ดวงจันทร์'); dotAt(corePos(d), '#c38bff', 9, 'ใจกลางทางช้างเผือก');
+  if (AR.show.paths) {
+    poly(P.sun.filter(p => p.alt > -8), '#ffd23f', 3); labels(P.sun, '#ffd23f');
+    poly(P.moon.filter(p => p.alt > -8), '#bfe0ff', 2.5, [8, 6]); labels(P.moon, '#bfe0ff');
+    poly(P.core.filter(p => p.alt > -8), '#c38bff', 3); labels(P.core, '#c38bff');
+  }
+  const dotAt = (p, color, rad, txt) => { const q = proj(p.alt, p.az); if (!q) return; x.fillStyle = color; if (rad) { x.beginPath(); x.arc(q[0], q[1], rad, 0, 7); x.fill(); } x.fillStyle = '#fff'; x.fillText(txt, q[0], q[1] - Math.max(rad, 12) - 4); };
+  dotAt(sunPos(d), '#ffd23f', 14, 'ดวงอาทิตย์ ' + fmt(d)); dotAt(moonPos(d), '#bfe0ff', AR.show.sky ? 0 : 11, 'ดวงจันทร์');
+  dotAt(corePos(d), '#c38bff', AR.show.sky ? 0 : 9, 'ใจกลางทางช้างเผือก');
   // center reticle + HUD
   x.strokeStyle = '#ffb84d'; x.lineWidth = 2; x.beginPath(); x.arc(W / 2, H / 2, 10, 0, 7); x.stroke();
   const head = (Math.atan2(AR.f[0], AR.f[1]) * R2D + 360) % 360, elev = Math.asin(Math.max(-1, Math.min(1, AR.f[2]))) * R2D;
@@ -356,6 +361,69 @@ function arStop() {
   window.removeEventListener('deviceorientationabsolute', onOri); window.removeEventListener('deviceorientation', onOri);
 }
 
+/* ---------- จำลองฟ้า ---------- */
+const SIM = { az: store.get('simAz', 180), alt: 25, fov: store.get('simFov', 100), show: store.get('simShow', { lines: true, names: true, ground: true, paths: false, frame: false }), lens: 16, portrait: false, playing: false, dirty: true, loop: false, msg: '' };
+const cl = (x, a, b) => Math.max(a, Math.min(b, x));
+function simDraw() {
+  const cv = $('simCv'); if (!cv.clientWidth) return;
+  const { x, W, H } = fitCanvas(cv), d = curDate();
+  $('simTime').textContent = fmt(d); $('simT').value = S.min;
+  if (!Sky.ready) { x.fillStyle = '#03050c'; x.fillRect(0, 0, W, H); return; }
+  const cam = Sky.camera(W, H, SIM.az, SIM.alt, SIM.fov, 'stereo');
+  const r = Sky.render(x, cam, { mode: 'sim', date: d, lat: S.lat, lng: S.lng, show: SIM.show, fast: SIM.playing || SIM.drag });
+  if (SIM.show.paths) { arPaths(); const P = AR.paths; Sky.drawPath(x, cam, P.sun, '#ffd23f', 2.5, null, true); Sky.drawPath(x, cam, P.moon, '#bfe0ff', 2, [7, 6], true); Sky.drawPath(x, cam, P.core, '#c38bff', 2.5, null, true); }
+  Sky.drawCompass(x, cam, SIM.show.ground);
+  let fr = '';
+  if (SIM.show.frame) {
+    const cm = CAMS[$('camSel').value] || CAMS.xt4, res = Sky.drawFrame(x, cam, cm.w, cm.h, SIM.lens, SIM.portrait);
+    fr = res ? `มุมรับภาพ ${res[0].toFixed(0)}°×${res[1].toFixed(0)}°` : 'กรอบใหญ่เกินจอ ซูมออกก่อน';
+  }
+  $('simFr').textContent = fr;
+  const vis = r.lim < 0 ? 'ยังมองไม่เห็นดาว' : `เห็นดาวสว่างถึงแมกนิจูด ~${Math.max(0, r.lim).toFixed(1)}`;
+  $('simInfo').innerHTML = `<b>${thDate(d)} ${fmt(d)}</b> · ${lightPhase(r.sunAlt)} · ${vis}<br>หันไป ${((SIM.az % 360) + 360) % 360 | 0}° (${dirTh(((SIM.az % 360) + 360) % 360)}) · เงย ${SIM.alt.toFixed(0)}° · มุมมอง ${SIM.fov.toFixed(0)}°${SIM.msg ? ' · ' + SIM.msg : ''}`;
+}
+function simLoop() {
+  if (view !== 'v-sim') { SIM.loop = false; return; }
+  SIM.loop = true; requestAnimationFrame(simLoop);
+  if (SIM.playing) { S.min += 2; if (S.min >= 1440) { S.min -= 1440; setDate(new Date(S.y, S.mo, S.d + 1, 0, S.min)); } SIM.dirty = true; }
+  if (SIM.dirty) { SIM.dirty = false; simDraw(); }
+}
+const simKick = () => { SIM.dirty = true; if (!SIM.loop && view === 'v-sim') simLoop(); };
+{
+  const cv = $('simCv'), pts = new Map(); let pinch = 0;
+  cv.addEventListener('pointerdown', e => { SIM.drag = true; cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  cv.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return; const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 1) { const k = SIM.fov / cv.clientWidth; SIM.az -= (e.clientX - prev[0]) * k; SIM.alt = cl(SIM.alt + (e.clientY - prev[1]) * k, -20, 90); }
+    else if (pts.size === 2) { const [a, b] = [...pts.values()], dd = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) SIM.fov = cl(SIM.fov * pinch / dd, 3, 160); pinch = dd; }
+    SIM.msg = ''; simKick();
+  });
+  const up = e => { pts.delete(e.pointerId); pinch = 0; if (!pts.size) { SIM.drag = false; simKick(); } store.set('simAz', SIM.az); store.set('simFov', SIM.fov); };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); SIM.fov = cl(SIM.fov * (1 + e.deltaY * 0.001), 3, 160); simKick(); }, { passive: false });
+}
+document.querySelectorAll('#simChips button[data-k]').forEach(b => { b.classList.toggle('on', !!SIM.show[b.dataset.k]); });
+$('frameRow').hidden = !SIM.show.frame;
+$('simChips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.k) { const k = b.dataset.k; SIM.show[k] = !SIM.show[k]; b.classList.toggle('on', SIM.show[k]); store.set('simShow', SIM.show); if (k === 'frame') $('frameRow').hidden = !SIM.show.frame; }
+  if (b.dataset.go) {
+    const d = curDate(), g = b.dataset.go, p = g === 'sun' ? sunPos(d) : g === 'moon' ? moonPos(d) : g === 'core' ? corePos(d) : { az: g === 'north' ? 0 : 180, alt: 20 };
+    SIM.az = p.az; SIM.alt = cl(p.alt, 10, 85);
+    SIM.msg = p.alt < 0 ? `<span style="color:#ff9a8a">ตอนนี้อยู่ใต้ขอบฟ้า ${(-p.alt).toFixed(0)}°</span>` : '';
+  }
+  simKick();
+});
+$('simT').addEventListener('input', e => { S.min = +e.target.value; simKick(); });
+$('simPlay').onclick = () => { SIM.playing = !SIM.playing; if (!SIM.playing) SIM.dirty = true; $('simPlay').textContent = SIM.playing ? '❚❚' : '▶'; simKick(); };
+$('simPrev').onclick = () => { setDate(new Date(S.y, S.mo, S.d - 1, 0, S.min)); simKick(); };
+$('simNext').onclick = () => { setDate(new Date(S.y, S.mo, S.d + 1, 0, S.min)); simKick(); };
+$('simLens').onchange = e => { SIM.lens = +e.target.value; simKick(); };
+$('simOrient').onclick = () => { SIM.portrait = !SIM.portrait; $('simOrient').textContent = SIM.portrait ? 'แนวตั้ง' : 'แนวนอน'; simKick(); };
+document.querySelectorAll('#arChips button').forEach(b => b.classList.toggle('on', !!AR.show[b.dataset.a]));
+$('arChips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.a; AR.show[k] = !AR.show[k]; b.classList.toggle('on', AR.show[k]); store.set('arShow', AR.show); });
+Sky.load().then(simKick).catch(() => { $('simInfo').textContent = 'โหลดข้อมูลดาวไม่สำเร็จ'; });
+
 /* ---------- modal ---------- */
 function ask(title, fields) {
   return new Promise(res => {
@@ -373,6 +441,7 @@ function refresh() {
   renderPlan();
   if (view === 'v-times') renderTimes();
   if (view === 'v-mw') renderMW();
+  if (view === 'v-sim') simKick();
 }
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
   view = b.dataset.v;
@@ -417,7 +486,7 @@ $('camSel').value = store.get('cam', 'xt4');
 $('arStart').onclick = arStart;
 $('arFov').oninput = e => $('arFovOut').textContent = e.target.value + '°';
 $('arCal').oninput = e => $('arCalOut').textContent = e.target.value + '°';
-window.addEventListener('resize', () => { if (view === 'v-times') drawSky(); if (view === 'v-mw') drawNight(); });
+window.addEventListener('resize', () => { if (view === 'v-times') drawSky(); if (view === 'v-mw') drawNight(); if (view === 'v-sim') simKick(); });
 
 renderPlaces(); calc(); refresh();
 if (!store.get('lat', null) && navigator.geolocation) $('gpsBtn').click();
